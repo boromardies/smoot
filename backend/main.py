@@ -19,6 +19,34 @@ from flask import Flask, request, json
 import psycopg2
 import os
 
+# Remember - storing secrets in plaintext is potentially unsafe. Consider using
+# something like https://cloud.google.com/secret-manager/docs/overview to help keep
+# secrets secret.
+db_user = os.environ["postgres"]
+db_pass = os.environ["jeff"]
+db_name = os.environ["dimension"]
+db_socket_dir = os.environ.get("DB_SOCKET_DIR", "/cloudsql")
+cloud_sql_connection_name = os.environ["smootthenorth:us-east1:dimension"]
+
+pool = sqlalchemy.create_engine(
+
+    # Equivalent URL:
+    # postgres+pg8000://<db_user>:<db_pass>@/<db_name>
+    #                         ?unix_sock=<socket_path>/<cloud_sql_instance_name>/.s.PGSQL.5432
+    sqlalchemy.engine.url.URL(
+        drivername="postgresql+pg8000",
+        username=db_user,  # e.g. "my-database-user"
+        password=db_pass,  # e.g. "my-database-password"
+        database=db_name,  # e.g. "my-database-name"
+        query={
+            "unix_sock": "{}/{}/.s.PGSQL.5432".format(
+                db_socket_dir,  # e.g. "/cloudsql"
+                cloud_sql_connection_name)  # i.e "<PROJECT-NAME>:<INSTANCE-REGION>:<INSTANCE-NAME>"
+        }
+    ),
+    **db_config
+)
+
 #os.system('./cloud_sql_proxy -instances=smootthenorth:us-east1:dimension=tcp:5432 &')
 conn = psycopg2.connect(user="postgres",password="jeff",host='34.73.215.171',port='5432',database="dimension")
 cur = conn.cursor()
